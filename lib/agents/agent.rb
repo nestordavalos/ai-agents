@@ -51,7 +51,7 @@ require_relative "helpers/hash_normalizer"
 module Agents
   class Agent
     attr_reader :name, :instructions, :model, :provider, :protocol, :assume_model_exists, :tools, :handoff_agents,
-                :temperature, :thinking, :response_schema, :headers, :params, :llm_context
+                :temperature, :thinking, :response_schema, :headers, :params, :llm_context, :caching
 
     # Initialize a new Agent instance
     #
@@ -70,9 +70,11 @@ module Agents
     # @param params [Hash, nil] Default provider-specific parameters applied to LLM requests (e.g., service_tier)
     # @param llm_context [RubyLLM::Context, nil] Provider configuration for this agent's chats; nil uses RubyLLM's
     #   global one. Agents running at the same time on different API keys or endpoints each keep their own.
+    # @param caching [Boolean, Hash, nil] Prompt caching for this agent's chats, as RubyLLM's Chat#with_caching takes it
+    #   (true, or options such as { key: "..." }); nil leaves the provider's default
     def initialize(name:, instructions: nil, model: "gpt-4.1-mini", provider: nil, protocol: nil,
                    assume_model_exists: false, tools: [], handoff_agents: [], temperature: 0.7, thinking: nil,
-                   response_schema: nil, headers: nil, params: nil, llm_context: nil)
+                   response_schema: nil, headers: nil, params: nil, llm_context: nil, caching: nil)
       @name = name
       @instructions = instructions
       @model = model
@@ -82,15 +84,12 @@ module Agents
       @tools = tools.dup
       @handoff_agents = []
       @temperature = temperature
-      @thinking = if thinking.nil?
-                    nil
-                  else
-                    Helpers::HashNormalizer.normalize(thinking, label: "thinking", freeze_result: true)
-                  end
+      @thinking = normalized_thinking(thinking)
       @response_schema = response_schema
       @headers = Helpers::HashNormalizer.normalize(headers, label: "headers", freeze_result: true)
       @params = Helpers::HashNormalizer.normalize(params, label: "params", freeze_result: true)
       @llm_context = llm_context
+      @caching = caching
 
       # Mutex for thread-safe handoff registration
       # While agents are typically configured at startup, we want to ensure
@@ -182,22 +181,8 @@ module Agents
     # @option changes [Hash, nil] :response_schema JSON schema for structured output
     # @return [Agents::Agent] A new frozen agent instance with the specified changes
     def clone(**changes)
-      self.class.new(
-        name: changes.fetch(:name, @name),
-        instructions: changes.fetch(:instructions, @instructions),
-        model: changes.fetch(:model, @model),
-        provider: changes.fetch(:provider, @provider),
-        protocol: changes.fetch(:protocol, @protocol),
-        assume_model_exists: changes.fetch(:assume_model_exists, @assume_model_exists),
-        tools: changes.fetch(:tools, @tools.dup),
-        handoff_agents: changes.fetch(:handoff_agents, @handoff_agents),
-        temperature: changes.fetch(:temperature, @temperature),
-        thinking: changes.fetch(:thinking, @thinking),
-        response_schema: changes.fetch(:response_schema, @response_schema),
-        headers: changes.fetch(:headers, @headers),
-        params: changes.fetch(:params, @params),
-        llm_context: changes.fetch(:llm_context, @llm_context)
-      )
+      options = clone_options
+      self.class.new(**options.merge(changes.slice(*options.keys)))
     end
 
     # Get the system prompt for the agent, potentially customized based on runtime context.
@@ -269,6 +254,22 @@ module Agents
         description: description,
         output_extractor: output_extractor
       )
+    end
+
+    private
+
+    def normalized_thinking(thinking)
+      return if thinking.nil?
+
+      Helpers::HashNormalizer.normalize(thinking, label: "thinking", freeze_result: true)
+    end
+
+    # Everything clone carries over unless changed
+    def clone_options
+      { name: @name, instructions: @instructions, model: @model, provider: @provider, protocol: @protocol,
+        assume_model_exists: @assume_model_exists, tools: @tools.dup, handoff_agents: @handoff_agents,
+        temperature: @temperature, thinking: @thinking, response_schema: @response_schema, headers: @headers,
+        params: @params, llm_context: @llm_context, caching: @caching }
     end
   end
 end

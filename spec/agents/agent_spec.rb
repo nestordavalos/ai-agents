@@ -38,6 +38,7 @@ RSpec.describe Agents::Agent do
         provider: :azure,
         assume_model_exists: true,
         llm_context: nil,
+        caching: nil,
         tools: tools,
         handoff_agents: handoff_agents,
         temperature: 0.9,
@@ -221,6 +222,7 @@ RSpec.describe Agents::Agent do
         provider: :azure,
         assume_model_exists: true,
         llm_context: nil,
+        caching: nil,
         tools: [test_tool],
         handoff_agents: [other_agent],
         temperature: 0.7,
@@ -320,6 +322,12 @@ RSpec.describe Agents::Agent do
       agent = described_class.new(name: "Test", llm_context: llm_context)
 
       expect(agent.clone(name: "Copy").llm_context).to be(llm_context)
+    end
+
+    it "keeps its caching options when cloned" do
+      agent = described_class.new(name: "Test", caching: { key: "assistant-1" })
+
+      expect(agent.clone(name: "Copy").caching).to eq(key: "assistant-1")
     end
 
     it "allows overriding provider and assume_model_exists when cloning" do
