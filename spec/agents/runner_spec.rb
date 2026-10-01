@@ -23,6 +23,7 @@ RSpec.describe Agents::Runner do
                     protocol: nil,
                     assume_model_exists: false,
                     llm_context: nil,
+                    caching: nil,
                     tools: [],
                     handoff_agents: [],
                     temperature: 0.7,
@@ -41,6 +42,7 @@ RSpec.describe Agents::Runner do
                     protocol: nil,
                     assume_model_exists: false,
                     llm_context: nil,
+                    caching: nil,
                     tools: [],
                     handoff_agents: [],
                     temperature: 0.7,
@@ -113,6 +115,7 @@ RSpec.describe Agents::Runner do
           protocol: nil,
           assume_model_exists: true,
           llm_context: nil,
+          caching: nil,
           tools: [],
           handoff_agents: [],
           temperature: 0.7,
@@ -144,6 +147,23 @@ RSpec.describe Agents::Runner do
         result = runner.run(azure_agent, "Hello")
 
         expect(result.output).to eq("Hello from Azure")
+      end
+
+      it "asks the provider to cache the prompt when the agent sets caching" do
+        allow(agent).to receive(:caching).and_return({ key: "assistant-1" })
+        mock_chat = instance_double(RubyLLM::Chat)
+        mock_response = instance_double(RubyLLM::Message, tool_call?: false, content: "Hello",
+                                                          tokens: RubyLLM::Tokens.new(input: 1, output: 1))
+        allow(RubyLLM::Chat).to receive(:new).and_return(mock_chat)
+        allow(mock_chat).to receive(:add_message)
+        allow(Agents::Helpers::MessageExtractor).to receive(:extract_messages).and_return([])
+        allow(mock_chat).to receive_messages(with_instructions: mock_chat, with_temperature: mock_chat,
+                                             with_tools: mock_chat, with_schema: mock_chat, with_caching: mock_chat,
+                                             ask_later: mock_chat, generate: mock_response)
+
+        runner.run(agent, "Hello")
+
+        expect(mock_chat).to have_received(:with_caching).with({ key: "assistant-1" })
       end
 
       it "creates the chat on the agent's own LLM context so concurrent runs keep their credentials" do
@@ -1043,6 +1063,7 @@ RSpec.describe Agents::Runner do
                         protocol: nil,
                         assume_model_exists: false,
                         llm_context: nil,
+                        caching: nil,
                         tools: [],
                         handoff_agents: [handoff_agent],
                         temperature: 0.7,
@@ -1099,7 +1120,8 @@ RSpec.describe Agents::Runner do
           model: "deployment-name",
           provider: :azure,
           assume_model_exists: true,
-          llm_context: nil
+          llm_context: nil,
+          caching: nil
         )
         mock_chat = instance_double(RubyLLM::Chat)
         context_wrapper = Agents::RunContext.new({})
@@ -1265,6 +1287,7 @@ RSpec.describe Agents::Runner do
                         protocol: nil,
                         assume_model_exists: false,
                         llm_context: nil,
+                        caching: nil,
                         tools: [],
                         handoff_agents: [],
                         temperature: 0.7,
@@ -1343,6 +1366,7 @@ RSpec.describe Agents::Runner do
                         protocol: nil,
                         assume_model_exists: false,
                         llm_context: nil,
+                        caching: nil,
                         tools: [test_tool],
                         handoff_agents: [],
                         temperature: 0.7,
@@ -1459,6 +1483,7 @@ RSpec.describe Agents::Runner do
                                              protocol: nil,
                                              assume_model_exists: false,
                                              llm_context: nil,
+                                             caching: nil,
                                              tools: [],
                                              handoff_agents: [handoff_agent],
                                              temperature: 0.7,
@@ -1496,6 +1521,7 @@ RSpec.describe Agents::Runner do
                                              protocol: nil,
                                              assume_model_exists: false,
                                              llm_context: nil,
+                                             caching: nil,
                                              tools: [],
                                              handoff_agents: [handoff_agent],
                                              temperature: 0.7,

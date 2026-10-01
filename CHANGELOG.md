@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `Agent` takes an optional `caching:` (what RubyLLM's `Chat#with_caching` takes: `true` or options such as `{ key: "..." }`) and the runner applies it to the agent's chats, so providers that cache only on request (Anthropic) or route by cache key (OpenAI) reuse the agent's stable prompt across runs.
 - `Agent` takes an optional `llm_context:` (a `RubyLLM::Context`) and the runner builds its chats on it, so agents running at the same time can use different API keys or endpoints without changing RubyLLM's global configuration.
 
 ### Changed

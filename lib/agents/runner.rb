@@ -458,6 +458,7 @@ module Agents
       chat.with_tools(nil) if replace
       chat.with_tools(*all_tools)
       chat.with_schema(agent.response_schema)
+      chat.with_caching(agent.caching) unless agent.caching.nil?
 
       chat
     end
