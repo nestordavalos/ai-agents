@@ -22,6 +22,7 @@ RSpec.describe Agents::Runner do
                     provider: nil,
                     protocol: nil,
                     assume_model_exists: false,
+                    llm_context: nil,
                     tools: [],
                     handoff_agents: [],
                     temperature: 0.7,
@@ -39,6 +40,7 @@ RSpec.describe Agents::Runner do
                     provider: nil,
                     protocol: nil,
                     assume_model_exists: false,
+                    llm_context: nil,
                     tools: [],
                     handoff_agents: [],
                     temperature: 0.7,
@@ -110,6 +112,7 @@ RSpec.describe Agents::Runner do
           provider: :azure,
           protocol: nil,
           assume_model_exists: true,
+          llm_context: nil,
           tools: [],
           handoff_agents: [],
           temperature: 0.7,
@@ -127,7 +130,8 @@ RSpec.describe Agents::Runner do
           model: "deployment-name",
           provider: :azure,
           protocol: nil,
-          assume_model_exists: true
+          assume_model_exists: true,
+          context: nil
         ).and_return(mock_chat)
         allow(mock_chat).to receive(:add_message)
         allow(Agents::Helpers::MessageExtractor).to receive(:extract_messages).and_return([])
@@ -140,6 +144,27 @@ RSpec.describe Agents::Runner do
         result = runner.run(azure_agent, "Hello")
 
         expect(result.output).to eq("Hello from Azure")
+      end
+
+      it "creates the chat on the agent's own LLM context so concurrent runs keep their credentials" do
+        llm_context = RubyLLM.context { |config| config.openai_api_key = "account-key" }
+        allow(agent).to receive(:llm_context).and_return(llm_context)
+        mock_chat = instance_double(RubyLLM::Chat)
+        mock_response = instance_double(RubyLLM::Message, tool_call?: false, content: "Hello",
+                                                          tokens: RubyLLM::Tokens.new(input: 1, output: 1))
+
+        allow(RubyLLM::Chat).to receive(:new).and_return(mock_chat)
+        allow(mock_chat).to receive(:add_message)
+        allow(Agents::Helpers::MessageExtractor).to receive(:extract_messages).and_return([])
+        allow(mock_chat).to receive_messages(with_instructions: mock_chat, with_temperature: mock_chat,
+                                             with_tools: mock_chat, with_schema: mock_chat,
+                                             ask_later: mock_chat, generate: mock_response)
+
+        runner.run(agent, "Hello")
+
+        expect(RubyLLM::Chat).to have_received(:new).with(
+          model: "gpt-4o", provider: nil, protocol: nil, assume_model_exists: false, context: llm_context
+        )
       end
     end
 
@@ -1017,6 +1042,7 @@ RSpec.describe Agents::Runner do
                         provider: nil,
                         protocol: nil,
                         assume_model_exists: false,
+                        llm_context: nil,
                         tools: [],
                         handoff_agents: [handoff_agent],
                         temperature: 0.7,
@@ -1072,7 +1098,8 @@ RSpec.describe Agents::Runner do
         allow(handoff_agent).to receive_messages(
           model: "deployment-name",
           provider: :azure,
-          assume_model_exists: true
+          assume_model_exists: true,
+          llm_context: nil
         )
         mock_chat = instance_double(RubyLLM::Chat)
         context_wrapper = Agents::RunContext.new({})
@@ -1237,6 +1264,7 @@ RSpec.describe Agents::Runner do
                         provider: nil,
                         protocol: nil,
                         assume_model_exists: false,
+                        llm_context: nil,
                         tools: [],
                         handoff_agents: [],
                         temperature: 0.7,
@@ -1314,6 +1342,7 @@ RSpec.describe Agents::Runner do
                         provider: nil,
                         protocol: nil,
                         assume_model_exists: false,
+                        llm_context: nil,
                         tools: [test_tool],
                         handoff_agents: [],
                         temperature: 0.7,
@@ -1429,6 +1458,7 @@ RSpec.describe Agents::Runner do
                                              provider: nil,
                                              protocol: nil,
                                              assume_model_exists: false,
+                                             llm_context: nil,
                                              tools: [],
                                              handoff_agents: [handoff_agent],
                                              temperature: 0.7,
@@ -1465,6 +1495,7 @@ RSpec.describe Agents::Runner do
                                              provider: nil,
                                              protocol: nil,
                                              assume_model_exists: false,
+                                             llm_context: nil,
                                              tools: [],
                                              handoff_agents: [handoff_agent],
                                              temperature: 0.7,

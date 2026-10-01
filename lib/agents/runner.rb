@@ -204,7 +204,7 @@ module Agents
 
     def build_chat(agent)
       RubyLLM::Chat.new(model: agent.model, provider: agent.provider, protocol: agent.protocol,
-                        assume_model_exists: agent.assume_model_exists)
+                        assume_model_exists: agent.assume_model_exists, context: agent.llm_context)
     end
 
     # Saves conversation state, builds a RunResult, emits completion callbacks, and returns it.

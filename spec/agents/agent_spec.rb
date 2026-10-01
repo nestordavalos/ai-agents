@@ -37,6 +37,7 @@ RSpec.describe Agents::Agent do
         model: "gpt-4o",
         provider: :azure,
         assume_model_exists: true,
+        llm_context: nil,
         tools: tools,
         handoff_agents: handoff_agents,
         temperature: 0.9,
@@ -219,6 +220,7 @@ RSpec.describe Agents::Agent do
         model: "gpt-4",
         provider: :azure,
         assume_model_exists: true,
+        llm_context: nil,
         tools: [test_tool],
         handoff_agents: [other_agent],
         temperature: 0.7,
@@ -311,6 +313,13 @@ RSpec.describe Agents::Agent do
 
       expect(cloned.params).to eq(service_tier: "flex")
       expect(agent_with_provider_options.params).to eq(service_tier: "default")
+    end
+
+    it "keeps its own LLM context when cloned" do
+      llm_context = RubyLLM.context { |config| config.openai_api_key = "account-key" }
+      agent = described_class.new(name: "Test", llm_context: llm_context)
+
+      expect(agent.clone(name: "Copy").llm_context).to be(llm_context)
     end
 
     it "allows overriding provider and assume_model_exists when cloning" do
