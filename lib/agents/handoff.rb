@@ -70,8 +70,10 @@ module Agents
     end
 
     # The runner switches agents after this tool records the handoff.
-    # Store handoff info in context for Runner to detect and process
-    def perform(tool_context)
+    # Store handoff info in context for Runner to detect and process.
+    # The tool declares no parameters, but models sometimes send some anyway (a reason, a summary);
+    # they are ignored instead of failing the run with an ArgumentError.
+    def perform(tool_context, **_params)
       # Store handoff information in context for Runner to detect
       tool_context.run_context.context[:pending_handoff] = {
         target_agent: @target_agent,

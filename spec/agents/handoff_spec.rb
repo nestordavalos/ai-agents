@@ -46,6 +46,20 @@ RSpec.describe Agents::HandoffTool do
       expect(result).to eq("I'll transfer you to Support Agent who can better assist you with this.")
       expect(context_hash[:pending_handoff]).to include(target_agent: target_agent)
     end
+
+    it "ignores arguments the model sends to the parameterless tool" do
+      tool_context = instance_double(Agents::ToolContext)
+      run_context = instance_double(Agents::RunContext)
+      context_hash = {}
+
+      allow(tool_context).to receive(:run_context).and_return(run_context)
+      allow(run_context).to receive(:context).and_return(context_hash)
+
+      result = handoff_tool.execute(tool_context, reason: "customer asked for billing")
+
+      expect(result).to eq("I'll transfer you to Support Agent who can better assist you with this.")
+      expect(context_hash[:pending_handoff]).to include(target_agent: target_agent)
+    end
   end
 
   describe "#target_agent" do
