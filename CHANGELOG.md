@@ -7,16 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-12
+
 ### Added
+- Allow RubyLLM 2.1. ai-agents supports `>= 2.0, < 2.2`.
 - `Agent` takes an optional `caching:` (what RubyLLM's `Chat#with_caching` takes: `true` or options such as `{ key: "..." }`) and the runner applies it to the agent's chats, so providers that cache only on request (Anthropic) or route by cache key (OpenAI) reuse the agent's stable prompt across runs.
 - `Agent` takes an optional `llm_context:` (a `RubyLLM::Context`) and the runner builds its chats on it, so agents running at the same time can use different API keys or endpoints without changing RubyLLM's global configuration.
 
 ### Changed
-- Require RubyLLM 2.0 starting with ai-agents 0.13.0. Applications using RubyLLM 1.x can keep ai-agents 0.12.0.
-- Keep the previous `param :name, desc: "..."` tool declaration syntax working with RubyLLM 2.0.
-- Allow RubyLLM 2.1. ai-agents supports `>= 2.0, < 2.2`.
 - Store `thinking_provider` and `thinking_model` beside `thinking_signature` in conversation history. RubyLLM 2.1 replays restored reasoning only to the provider and model that produced it. Histories saved before this change do not replay reasoning on RubyLLM 2.1.
 - On RubyLLM 2.0, reasoning restored from history now replays only to the provider that produced it. Before, it went to any provider.
+
+### Fixed
+- The parameterless handoff tool ignores arguments the model sends to it instead of failing the call.
+
+## [0.13.0] - 2026-10-07
+
+### Changed
+- Require RubyLLM 2.0 starting with ai-agents 0.13.0. Applications using RubyLLM 1.x can keep ai-agents 0.12.0.
+- Keep the previous `param :name, desc: "..."` tool declaration syntax working with RubyLLM 2.0.
 
 ## [0.12.0] - 2026-06-29
 
